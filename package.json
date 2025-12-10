@@ -1,0 +1,23 @@
+{
+  "name": "wc3-obs-bot",
+  "version": "1.0.0",
+  "description": "Discord bot that monitors WC3Stats API and posts hosted games",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js"
+  },
+  "keywords": [
+    "discord",
+    "bot",
+    "wc3",
+    "warcraft3"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.6.5",
+    "canvas": "^3.2.0",
+    "discord.js": "^14.14.1",
+    "dotenv": "^16.3.1"
+  }
+}

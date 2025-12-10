@@ -2,12 +2,23 @@ require('dotenv').config();
 const { Client, GatewayIntentBits, AttachmentBuilder } = require('discord.js');
 const axios = require('axios');
 const { generateGameImage } = require('./gameImageGenerator');
+const express = require('express');
 
 // Configuration
 const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
 const CHANNEL_ID = '1372149095556317194'; 
 const API_URL = 'https://api.wc3stats.com/gamelist';
 const POLL_INTERVAL = 30000; // 30 seconds
+const PORT = process.env.PORT || 3000;
+
+// Create simple web server to keep Replit alive
+const app = express();
+app.get('/', (req, res) => {
+    res.send('WC3 Observer Bot is running! 🎮');
+});
+app.listen(PORT, () => {
+    console.log(`🌐 Web server running on port ${PORT}`);
+});
 
 // Store tracked game IDs to avoid duplicate posts
 const trackedGames = new Set();

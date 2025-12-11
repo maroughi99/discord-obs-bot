@@ -2,13 +2,16 @@ require('dotenv').config();
 const { Client, GatewayIntentBits, AttachmentBuilder } = require('discord.js');
 const axios = require('axios');
 const { generateGameImage } = require('./gameImageGenerator');
+const { generateGameListImage } = require('./gameListGenerator');
 const express = require('express');
 
 // Configuration
 const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
 const CHANNEL_ID = '1372149095556317194'; 
+const GAME_LIST_CHANNEL_ID = '1448534015970906185';
 const API_URL = 'https://api.wc3stats.com/gamelist';
 const POLL_INTERVAL = 30000; // 30 seconds
+const GAME_LIST_UPDATE_INTERVAL = 60000; // 60 seconds
 const PORT = process.env.PORT || 3000;
 
 // Create simple web server to keep Replit alive
@@ -22,6 +25,7 @@ app.listen(PORT, () => {
 
 // Store tracked game IDs to avoid duplicate posts
 const trackedGames = new Set();
+let gameListMessage = null; // Store the game list message for updating
 
 // Create Discord client
 const client = new Client({
@@ -101,6 +105,48 @@ async function checkAndPostGames() {
     }
 }
 
+// Update game list browser
+async function updateGameList() {
+    try {
+        const games = await fetchGames();
+        const gameListChannel = client.channels.cache.get(GAME_LIST_CHANNEL_ID);
+        
+        if (!gameListChannel) {
+            console.error('Game list channel not found!');
+            return;
+        }
+
+        // Generate game list image
+        const imageBuffer = await generateGameListImage(games);
+        const attachment = new AttachmentBuilder(imageBuffer, { name: 'gamelist.png' });
+        
+        // Update or create message
+        if (gameListMessage) {
+            try {
+                await gameListMessage.edit({
+                    content: `🎮 **LIVE GAME BROWSER** - ${games.length} games available`,
+                    files: [attachment]
+                });
+                console.log(`📋 Updated game list (${games.length} games)`);
+            } catch (error) {
+                // Message might have been deleted, create new one
+                gameListMessage = await gameListChannel.send({
+                    content: `🎮 **LIVE GAME BROWSER** - ${games.length} games available`,
+                    files: [attachment]
+                });
+            }
+        } else {
+            gameListMessage = await gameListChannel.send({
+                content: `🎮 **LIVE GAME BROWSER** - ${games.length} games available`,
+                files: [attachment]
+            });
+            console.log(`📋 Created game list (${games.length} games)`);
+        }
+    } catch (error) {
+        console.error('Error updating game list:', error.message);
+    }
+}
+
 // Bot ready event
 client.once('ready', () => {
     console.log(`✅ Logged in as ${client.user.tag}`);
@@ -125,8 +171,13 @@ client.once('ready', () => {
         games.forEach(game => trackedGames.add(game.id));
         console.log(`🎯 Initialized with ${trackedGames.size} existing games`);
         
-        // Start polling for new games
+        // Start polling for new OBS games
         setInterval(checkAndPostGames, POLL_INTERVAL);
+        
+        // Start game list browser updates
+        updateGameList(); // Initial update
+        setInterval(updateGameList, GAME_LIST_UPDATE_INTERVAL);
+        console.log(`📋 Game list browser will update every ${GAME_LIST_UPDATE_INTERVAL / 1000} seconds`);
     });
 });
 
